@@ -11,6 +11,8 @@ public class Player : MonoBehaviour {
     [SerializeField]
     private float _sensitivity = 2.0f;
     [SerializeField]
+    private GameObject _weapon;
+    [SerializeField]
     private GameObject _muzzelFlash;
     [SerializeField]
     private GameObject _hitMarker;
@@ -19,10 +21,12 @@ public class Player : MonoBehaviour {
     [SerializeField]
     private bool invertY = true;
     [SerializeField]
-    private UIManager uiManager;
+    private UIManager _uiManager;
 
     private bool cursorVisibility = false;
     private CharacterController _controller;
+
+    private bool _hasCoin = false;
 
     // ;)
     private int _currentAmmunation;
@@ -56,7 +60,7 @@ public class Player : MonoBehaviour {
         }
         CalculateMovement();
         CalculateLook();
-        if (Input.GetButton("Fire1") && _currentAmmunation > 0){
+        if (Input.GetButton("Fire1") && _currentAmmunation > 0 && _weapon.activeInHierarchy){
  
             ShootOrActivate();
         } else
@@ -116,7 +120,7 @@ public class Player : MonoBehaviour {
         // Turn on the muzzle flash, subtract ammo, play shooting sound
         _muzzelFlash.SetActive(true);
         _currentAmmunation--;
-        uiManager.UpdateAmmunation(_currentAmmunation);
+        _uiManager.UpdateAmmunation(_currentAmmunation);
 
         if(!_audioSource.isPlaying)
         {
@@ -128,6 +132,13 @@ public class Player : MonoBehaviour {
         if (Physics.Raycast(rayOrigin, out hitInfo))
         {
             Instantiate(_hitMarker, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+
+            
+            Destructible crate = hitInfo.transform.GetComponent<Destructible>();
+            if (crate != null)
+            {
+                crate.DestroyCrate();
+            }
         }
     }
 
@@ -136,6 +147,29 @@ public class Player : MonoBehaviour {
         yield return new WaitForSeconds(1.5f);
         _currentAmmunation = _maxAmmunation;
         isReloading = false;
-        uiManager.UpdateAmmunation(_currentAmmunation);
+        _uiManager.UpdateAmmunation(_currentAmmunation);
+    }
+
+    public void pickUpCoin()
+    {
+        _hasCoin = true;
+        _uiManager.UpdateCoinInventory(_hasCoin);
+    }
+
+    public bool checkForCoin()
+    {
+        return _hasCoin;
+    }
+
+    public void buyGun()
+    {
+        // check for a coin
+        if (_hasCoin)
+        {
+            // remove the coin, update the UI, activate the weapon
+            _hasCoin = false;
+            _uiManager.UpdateCoinInventory(_hasCoin);
+            _weapon.SetActive(true);
+        }
     }
 }
